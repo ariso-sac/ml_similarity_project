@@ -1,6 +1,12 @@
 import pandas as pd
 from sqlalchemy import create_engine
 
+# load parsers 
+from parsers.colours import parse_colours
+from parsers.price import parse_price
+from parsers.ratings import parse_rating
+from parsers.weights import parse_weight_grams
+
 # Load data for json
 print("Loading JSON data...")
 df = pd.read_json(
@@ -11,8 +17,15 @@ df = pd.read_json(
 cat_cols = df.select_dtypes(include=["object", "category"]).columns
 num_cols = df.select_dtypes(include=["number"]).columns
 
-df[cat_cols] = df[cat_cols].fillna("")
+df[cat_cols] = df[cat_cols].fillna("unknown")
 df[num_cols] = df[num_cols].fillna(0)
+
+# 2. Clean numeric features
+print("Clean the data...")
+df["sales_price"] = df["sales_price"].apply(parse_price)
+df["weight"] = df["weight"].apply(parse_weight_grams)
+df["nurating"] = df["rating"].apply(parse_rating)
+df["colour"] = df["colour"].apply(parse_colours)
 
 print("Selecting relevant columns...")
 df_with_selected_cols = df[
@@ -48,7 +61,7 @@ try:
     )
 
     # Write the selected columns to the PostgreSQL table
-    df_with_selected_cols.to_sql("products_original", engine, if_exists="replace", index=False)
+    df_with_selected_cols.to_sql("products", engine, if_exists="replace", index=False)
     print("Data successfully written to the PostgreSQL table.")
 
 except Exception as e:
